@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brainstorm</title>
+<style>
+  :root{
+    --bg:#FAFAFA;
+    --surface:#FFFFFF;
+    --ink:#1D1D1F;
+    --ink-soft:#6E6E73;
+    --blue:#0A6CFF;
+    --blue-soft:#EAF1FF;
+    --amber:#FF9F0A;
+    --red:#FF3B30;
+    --border:#ECECEF;
+    --radius-lg:28px;
+    --radius-md:18px;
+    --radius-sm:12px;
+    --shadow:0 20px 40px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding:32px 16px 80px;
+  }
+  .app{width:100%;max-width:720px;transition:max-width .2s ease;}
+  .app.wide{max-width:1200px;}
+  h1{font-size:28px;font-weight:700;letter-spacing:-0.02em;margin:0 0 4px;}
+  .sub{color:var(--ink-soft);font-size:15px;margin:0 0 28px;}
+  .card{
+    background:var(--surface);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow);
+    padding:28px;
+    margin-bottom:20px;
+  }
+  label{display:block;font-size:13px;font-weight:600;color:var(--ink-soft);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em;}
+  textarea, input[type=text]{
+    width:100%;
+    border:1.5px solid var(--border);
+    border-radius:var(--radius-md);
+    padding:14px 16px;
+    font-size:16px;
+    font-family:inherit;
+    color:var(--ink);
+    background:var(--bg);
+    resize:none;
+    outline:none;
+    transition:border-color .15s ease;
+  }
+  textarea:focus, input[type=text]:focus{border-color:var(--blue);}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .chip{
+    padding:9px 16px;
+    border-radius:999px;
+    border:1.5px solid var(--border);
+    background:var(--surface);
+    cursor:pointer;
+    font-size:14px;
+    font-weight:600;
+    color:var(--ink-soft);
+    transition:all .15s ease;
+  }
+  .chip.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+  .chip:hover{border-color:var(--blue);}
+  .btn{
+    appearance:none;
+    border:none;
+    border-radius:999px;
+    padding:14px 26px;
+    font-size:16px;
+    font-weight:600;
+    cursor:pointer;
+    font-family:inherit;
+    transition:transform .1s ease, opacity .15s ease;
+  }
+  .btn:active{transform:scale(0.97);}
+  .btn-primary{background:var(--blue);color:#fff;}
+  .btn-primary:hover{opacity:0.9;}
+  .btn-ghost{background:var(--blue-soft);color:var(--blue);}
+  .btn-ghost:hover{opacity:0.85;}
+  .btn-text{background:none;color:var(--ink-soft);padding:14px 10px;}
+  .btn-text:hover{color:var(--ink);}
+  .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+  .row.end{justify-content:flex-end;}
+  .row.between{justify-content:space-between;}
+
+  /* Generation overlay */
+  .overlay{
+    position:fixed;inset:0;
+    background:var(--bg);
+    z-index:50;
+    display:flex;flex-direction:column;align-items:center;
+    padding:36px 20px;
+    overflow-y:auto;
+  }
+  .timer-wrap{position:relative;width:180px;height:180px;margin:8px 0 6px;}
+  .timer-wrap svg{transform:rotate(-90deg);}
+  .timer-bg{fill:none;stroke:var(--border);stroke-width:8;}
+  .timer-fg{fill:none;stroke:var(--blue);stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset 1s linear, stroke .3s ease;}
+  .timer-num{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:36px;font-weight:700;font-variant-numeric:tabular-nums;
+    font-family:ui-monospace,"SF Mono",monospace;
+  }
+  .question-pill{
+    background:var(--blue-soft);color:var(--blue);font-weight:600;font-size:14px;
+    padding:8px 18px;border-radius:999px;max-width:560px;text-align:center;margin-bottom:18px;
+  }
+  .prompt-line{
+    color:var(--ink-soft);font-size:14px;font-style:italic;min-height:20px;margin:6px 0 22px;text-align:center;
+  }
+  .capture{width:100%;max-width:480px;display:flex;gap:8px;margin-bottom:24px;}
+  .count{font-size:13px;color:var(--ink-soft);margin-bottom:14px;}
+  .ideas-grid{
+    width:100%;max-width:640px;display:flex;flex-wrap:wrap;gap:10px;justify-content:center;
+    padding-bottom:20px;
+  }
+  .idea-chip{
+    background:var(--surface);border-radius:var(--radius-sm);padding:10px 14px;
+    font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.05);
+    animation:pop .25s ease;
+    max-width:260px;
+  }
+  @keyframes pop{from{transform:scale(0.85);opacity:0;}to{transform:scale(1);opacity:1;}}
+
+  /* Mind map — corkboard style */
+  .map-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
+  .map-hint{color:var(--ink-soft);font-size:13px;}
+  .map-canvas{
+    position:relative;width:100%;height:640px;overflow:auto;
+    background-color:#F0F1F4;
+    background-image:radial-gradient(#D7D9E0 1.5px, transparent 1.5px);
+    background-size:22px 22px;
+    border-radius:var(--radius-lg);box-shadow:var(--shadow);
+  }
+  .map-inner{position:relative;width:1600px;height:1050px;}
+  .map-inner svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;}
+  .map-title{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    text-align:center;pointer-events:none;z-index:0;
+  }
+  .map-title-text{
+    font-size:42px;font-weight:800;color:#D7D9E2;letter-spacing:-0.02em;
+    white-space:nowrap;max-width:900px;
+  }
+  .map-card{
+    position:absolute;width:190px;
+    border-radius:6px;padding:16px 16px 20px;
+    box-shadow:0 8px 18px rgba(0,0,0,0.16), 0 2px 4px rgba(0,0,0,0.08);
+    cursor:grab;user-select:none;font-size:14px;font-weight:600;line-height:1.35;
+    color:#2B2B2B;
+    transition:box-shadow .15s ease, transform .1s ease;
+    z-index:2;
+  }
+  .map-card:active{cursor:grabbing;}
+  .map-card.connecting{box-shadow:0 0 0 4px rgba(10,108,255,0.35), 0 8px 18px rgba(0,0,0,0.16);}
+  .map-card.starred::before{
+    content:"📌";position:absolute;top:-10px;left:-6px;font-size:18px;
+    transform:rotate(-20deg);
+  }
+  .map-card .star-btn{
+    position:absolute;top:8px;right:10px;font-size:15px;color:rgba(0,0,0,0.25);cursor:pointer;
+  }
+  .map-card.starred .star-btn{color:rgba(0,0,0,0.45);}
+  .map-card .map-card-text{padding-right:14px;}
+
+  /* sticky-note variant: folded corner */
+  .map-card.shape-sticky::after{
+    content:"";position:absolute;bottom:0;right:0;width:0;height:0;
+    border-style:solid;border-width:0 0 16px 16px;
+    border-color:transparent transparent rgba(0,0,0,0.12) transparent;
+  }
+  /* index-card variant: plain paper with thin border */
+  .map-card.shape-index{
+    background:#FFFFFF !important;border:1px solid #E4E4E8;
+    box-shadow:0 4px 10px rgba(0,0,0,0.08);
+  }
+
+  .map-card.c-yellow{background:#FFE066;}
+  .map-card.c-pink{background:#FFB3D1;}
+  .map-card.c-green{background:#8BE3B8;}
+  .map-card.c-blue{background:#8FC7FF;}
+  .map-card.c-lavender{background:#D2C2FF;}
+  .map-card.c-peach{background:#FFC299;}
+
+  .idea-card{
+    background:var(--surface);border-radius:var(--radius-md);padding:14px 16px;
+    box-shadow:0 6px 16px rgba(0,0,0,0.05);
+    display:flex;align-items:center;gap:12px;margin-bottom:10px;
+    cursor:pointer;border:1.5px solid transparent;transition:border-color .15s ease;
+  }
+  .idea-card.starred{border-color:var(--amber);background:#FFFBF2;}
+  .star{font-size:20px;color:var(--border);flex-shrink:0;}
+  .idea-card.starred .star{color:var(--amber);}
+  .idea-text{font-size:15px;flex:1;}
+  .conn-list{list-style:none;padding:0;margin:0;}
+  .conn-list li{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--ink-soft);
+  }
+  .conn-list li:last-child{border-bottom:none;}
+
+  .final-list{list-style:none;padding:0;margin:0;}
+  .final-list li{
+    padding:12px 16px;background:var(--blue-soft);border-radius:var(--radius-sm);
+    margin-bottom:8px;font-size:15px;font-weight:600;color:var(--ink);
+  }
+  .history-item{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:12px 0;border-bottom:1px solid var(--border);font-size:14px;
+  }
+  .history-item:last-child{border-bottom:none;}
+  .history-q{color:var(--ink);font-weight:600;}
+  .history-meta{color:var(--ink-soft);font-size:12px;}
+  .empty{color:var(--ink-soft);font-size:14px;text-align:center;padding:20px 0;}
+  @media (prefers-reduced-motion: reduce){
+    .idea-chip{animation:none;}
+    .timer-fg{transition:none;}
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+
+<script>
+const PROMPTS = [
+  "E se você tivesse zero seguidores amanhã?",
+  "Combine essa ideia com algo do entretenimento.",
+  "Como a Apple resolveria isso?",
+  "O que você tiraria se só pudesse manter uma parte?",
+  "E se fosse proibido por lei fazer do jeito óbvio?",
+  "Inverta a lógica: e o oposto disso?",
+  "Qual seria a versão cara? E a versão gratuita?",
+  "Como isso apareceria num reality show?",
+  "Substitua o público: e se fosse pra uma criança?",
+  "Force um prazo de 24h: o que sai primeiro?",
+];
+
+function uid(){return Math.random().toString(36).slice(2,9);}
+
+async function storageGet(key){
+  try{
+    const r = await window.storage.get(key,false);
+    return r ? JSON.parse(r.value) : null;
+  }catch(e){return null;}
+}
+async function storageSet(key,value){
+  try{ await window.storage.set(key, JSON.stringify(value), false); }catch(e){}
+}
+
+let state = {
+  stage:'setup', // setup | generate | map | done
+  question:'',
+  durationMin:10,
+  secondsLeft:0,
+  ideas:[], // {id,text,starred,x,y}
+  connections:[], // {id,fromId,toId,label}
+  connectFrom:null,
+  timerHandle:null,
+  promptHandle:null,
+  promptIndex:0,
+};
+let history = [];
+
+async function init(){
+  const draft = await storageGet('brainstorm:current');
+  if(draft && draft.ideas && draft.ideas.length){
+    state = {...state, ...draft, connections:draft.connections||[], connectFrom:null, stage: draft.stage==='generate' ? 'map' : draft.stage};
+  }
+  const savedHistory = await storageGet('brainstorm:history');
+  history = savedHistory || [];
+  render();
+}
+
+function render(){
+  const app = document.getElementById('app');
+  app.classList.toggle('wide', state.stage==='map');
+  if(state.stage==='setup') app.innerHTML = setupView();
+  else if(state.stage==='map') app.innerHTML = mapView();
+  else if(state.stage==='done') app.innerHTML = doneView();
+  else app.innerHTML = '';
+  attachSetupEvents();
+  attachMapEvents();
+  attachDoneEvents();
+  if(state.stage==='generate') openGenerateOverlay();
+}
+
+function setupView(){
+  const durations = [5,10,15,20];
+  const historyHtml = history.length ? history.slice().reverse().slice(0,6).map(h=>`
+    <div class="history-item">
+      <div>
+        <div class="history-q">${escapeHtml(h.question)}</div>
+        <div class="history-meta">${h.count} ideias · ${new Date(h.date).toLocaleDateString('pt-BR')}</div>
+      </div>
+      <button class="btn btn-text" data-load="${h.id}">Ver</button>
+    </div>
+  `).join('') : '<div class="empty">Nenhuma sessão salva ainda.</div>';
+
+  return `
+    <h1>Brainstorm</h1>
+    <p class="sub">Defina a pergunta, escolha o tempo, e gere ideias sem se julgar.</p>
+    <div class="card">
+      <label>Qual é a pergunta do brainstorm?</label>
+      <textarea id="questionInput" rows="2" placeholder="Ex: 3 formatos de vídeo sobre inflação conectando com pop culture">${escapeHtml(state.question)}</textarea>
+      <div style="height:20px"></div>
+      <label>Tempo de geração</label>
+      <div class="chips" id="durationChips">
+        ${durations.map(d=>`<div class="chip ${d===state.durationMin?'active':''}" data-dur="${d}">${d} min</div>`).join('')}
+      </div>
+      <div style="height:24px"></div>
+      <div class="row end">
+        <button class="btn btn-primary" id="startBtn">Começar geração</button>
+      </div>
+    </div>
+    <div class="card">
+      <label>Sessões anteriores</label>
+      ${historyHtml}
+    </div>
+  `;
+}
+
+function attachSetupEvents(){
+  const qi = document.getElementById('questionInput');
+  if(!qi) return;
+  qi.addEventListener('input', e=> state.question = e.target.value);
+  document.querySelectorAll('#durationChips .chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      state.durationMin = parseInt(chip.dataset.dur);
+      render();
+    });
+  });
+  document.getElementById('startBtn').addEventListener('click', ()=>{
+    if(!state.question.trim()){
+      qi.style.borderColor = 'var(--red)';
+      qi.focus();
+      return;
+    }
+    state.ideas = [];
+    state.secondsLeft = state.durationMin*60;
+    state.stage='generate';
+    storageSet('brainstorm:current', {stage:'generate', question:state.question, durationMin:state.durationMin, ideas:[]});
+    render();
+  });
+  document.querySelectorAll('[data-load]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const h = history.find(x=>x.id===btn.dataset.load);
+      if(h){
+        state.question = h.question;
+        state.ideas = h.ideas;
+        state.connections = h.connections || [];
+        state.connectFrom = null;
+        state.stage = 'map';
+        storageSet('brainstorm:current', {stage:'map', question:state.question, durationMin:state.durationMin, ideas:state.ideas, connections:state.connections});
+        render();
+      }
+    });
+  });
+}
+
+function openGenerateOverlay(){
+  const app = document.getElementById('app');
+  const overlay = document.createElement('div');
+  overlay.className='overlay';
+  overlay.id='overlay';
+  overlay.innerHTML = `
+    <div class="question-pill">${escapeHtml(state.question)}</div>
+    <div class="timer-wrap">
+      <svg width="180" height="180" viewBox="0 0 180 180">
+        <circle class="timer-bg" cx="90" cy="90" r="80"></circle>
+        <circle class="timer-fg" id="timerFg" cx="90" cy="90" r="80" stroke-dasharray="502" stroke-dashoffset="0"></circle>
+      </svg>
+      <div class="timer-num" id="timerNum">--:--</div>
+    </div>
+    <div class="prompt-line" id="promptLine">${PROMPTS[0]}</div>
+    <div class="capture">
+      <input type="text" id="ideaInput" placeholder="Digite uma ideia e aperte Enter" autofocus>
+      <button class="btn btn-primary" id="addIdeaBtn">Add</button>
+    </div>
+    <div class="count" id="ideaCount">0 ideias</div>
+    <div class="ideas-grid" id="ideasGrid"></div>
+    <div style="margin-top:auto;padding-top:20px;">
+      <button class="btn btn-ghost" id="finishBtn">Terminar geração</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const input = document.getElementById('ideaInput');
+  const grid = document.getElementById('ideasGrid');
+
+  function addIdea(){
+    const text = input.value.trim();
+    if(!text) return;
+    const idea = {id:uid(), text, starred:false};
+    state.ideas.push(idea);
+    const chip = document.createElement('div');
+    chip.className='idea-chip';
+    chip.textContent = text;
+    grid.prepend(chip);
+    document.getElementById('ideaCount').textContent = state.ideas.length + (state.ideas.length===1?' ideia':' ideias');
+    input.value='';
+    storageSet('brainstorm:current', {stage:'generate', question:state.question, durationMin:state.durationMin, ideas:state.ideas});
+  }
+  input.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); addIdea(); } });
+  document.getElementById('addIdeaBtn').addEventListener('click', addIdea);
+  document.getElementById('finishBtn').addEventListener('click', endGeneration);
+
+  const total = state.durationMin*60;
+  const circumference = 2*Math.PI*80;
+  document.getElementById('timerFg').setAttribute('stroke-dasharray', circumference);
+
+  function tick(){
+    const mins = Math.floor(state.secondsLeft/60);
+    const secs = state.secondsLeft%60;
+    document.getElementById('timerNum').textContent = `${mins}:${secs.toString().padStart(2,'0')}`;
+    const frac = state.secondsLeft/total;
+    document.getElementById('timerFg').setAttribute('stroke-dashoffset', circumference*(1-frac));
+    document.getElementById('timerFg').style.stroke = frac < 0.15 ? 'var(--red)' : (frac<0.4 ? 'var(--amber)' : 'var(--blue)');
+    if(state.secondsLeft<=0){ endGeneration(); return; }
+    state.secondsLeft--;
+    state.timerHandle = setTimeout(tick, 1000);
+  }
+  tick();
+
+  function cyclePrompt(){
+    state.promptIndex = (state.promptIndex+1) % PROMPTS.length;
+    const el = document.getElementById('promptLine');
+    if(el) el.textContent = PROMPTS[state.promptIndex];
+    state.promptHandle = setTimeout(cyclePrompt, 18000);
+  }
+  state.promptHandle = setTimeout(cyclePrompt, 18000);
+
+  function endGeneration(){
+    clearTimeout(state.timerHandle);
+    clearTimeout(state.promptHandle);
+    document.body.removeChild(overlay);
+    if(state.ideas.length){
+      const colors = ['c-yellow','c-pink','c-green','c-blue','c-lavender','c-peach'];
+      const shapes = ['shape-sticky','shape-sticky','shape-index'];
+      state.ideas.forEach(i=>{
+        if(i.x===undefined){
+          i.x = 40 + Math.random()*1300;
+          i.y = 40 + Math.random()*870;
+          i.color = colors[Math.floor(Math.random()*colors.length)];
+          i.shape = shapes[Math.floor(Math.random()*shapes.length)];
+          i.rot = Math.round((Math.random()*10-5));
+        }
+      });
+      state.stage = 'map';
+    } else {
+      state.stage = 'setup';
+    }
+    storageSet('brainstorm:current', {stage:state.stage, question:state.question, durationMin:state.durationMin, ideas:state.ideas, connections:state.connections});
+    render();
+  }
+}
+
+function mapView(){
+  if(!state.ideas.length){
+    return `
+      <h1>Sem ideias ainda</h1>
+      <p class="sub">Volte e gere algumas antes de montar o mapa.</p>
+      <button class="btn btn-primary" id="backBtn">Voltar ao início</button>
+    `;
+  }
+  return `
+    <div class="row between" style="margin-bottom:4px;">
+      <button class="btn btn-text" id="mapBackBtn">← Voltar ao início</button>
+    </div>
+    <h1>Mapa mental</h1>
+    <p class="sub">${escapeHtml(state.question)}</p>
+    <div class="map-toolbar">
+      <span class="map-hint">Clique numa ideia, depois em outra pra conectar. Clique de novo no mesmo par pra desfazer. Arraste os cards pra organizar.</span>
+      <button class="btn btn-primary" id="mapDoneBtn">Concluir mapa</button>
+    </div>
+    <div class="map-canvas" id="mapCanvas">
+      <div class="map-inner" id="mapInner">
+        <svg id="mapSvg"></svg>
+        <div class="map-title"><div class="map-title-text">${escapeHtml(state.question)}</div></div>
+        ${state.ideas.map(i=>`
+          <div class="map-card ${i.color||'c-yellow'} ${i.shape||'shape-sticky'} ${i.starred?'starred':''}"
+               data-id="${i.id}" style="left:${i.x}px;top:${i.y}px;transform:rotate(${i.rot||0}deg);">
+            <span class="star-btn" data-star="${i.id}">★</span>
+            <div class="map-card-text">${escapeHtml(i.text)}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function attachMapEvents(){
+  const backBtn = document.getElementById('backBtn');
+  if(backBtn) backBtn.addEventListener('click', ()=>{ state.stage='setup'; render(); });
+  const mapBackBtn = document.getElementById('mapBackBtn');
+  if(mapBackBtn) mapBackBtn.addEventListener('click', ()=>{ state.stage='setup'; render(); });
+
+  const inner = document.getElementById('mapInner');
+  if(!inner) return;
+  const svg = document.getElementById('mapSvg');
+
+  function saveMap(){
+    storageSet('brainstorm:current', {stage:'map', question:state.question, durationMin:state.durationMin, ideas:state.ideas, connections:state.connections});
+  }
+
+  function drawLines(){
+    svg.innerHTML='';
+    state.connections.forEach(conn=>{
+      const elA = inner.querySelector(`.map-card[data-id="${conn.fromId}"]`);
+      const elB = inner.querySelector(`.map-card[data-id="${conn.toId}"]`);
+      if(!elA || !elB) return;
+      const x1 = elA.offsetLeft + elA.offsetWidth/2;
+      const y1 = elA.offsetTop + elA.offsetHeight/2;
+      const x2 = elB.offsetLeft + elB.offsetWidth/2;
+      const y2 = elB.offsetTop + elB.offsetHeight/2;
+      const mx = (x1+x2)/2, my = (y1+y2)/2;
+      const dx = x2-x1, dy = y2-y1;
+      const dist = Math.hypot(dx,dy) || 1;
+      const bow = Math.min(40, dist*0.12);
+      const cx = mx - (dy/dist)*bow, cy = my + (dx/dist)*bow;
+      const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+      path.setAttribute('d', `M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`);
+      path.setAttribute('fill','none');
+      path.setAttribute('stroke','#FF6B6B');
+      path.setAttribute('stroke-width','2.5');
+      path.setAttribute('stroke-linecap','round');
+      path.setAttribute('stroke-opacity','0.7');
+      svg.appendChild(path);
+      if(conn.label){
+        const text = document.createElementNS('http://www.w3.org/2000/svg','text');
+        text.setAttribute('x',cx); text.setAttribute('y',cy);
+        text.setAttribute('text-anchor','middle');
+        text.setAttribute('font-size','12');
+        text.setAttribute('font-weight','700');
+        text.setAttribute('fill','#B03A3A');
+        text.setAttribute('stroke','#F0F1F4');
+        text.setAttribute('stroke-width','4');
+        text.setAttribute('paint-order','stroke');
+        text.setAttribute('style','pointer-events:auto;cursor:pointer;font-family:inherit;');
+        text.textContent = conn.label;
+        text.addEventListener('click', ()=>{
+          state.connections = state.connections.filter(c=>c.id!==conn.id);
+          saveMap(); drawLines();
+        });
+        svg.appendChild(text);
+      }
+    });
+  }
+  drawLines();
+
+  inner.querySelectorAll('.map-card').forEach(card=>{
+    let dragging=false, moved=false, startX=0, startY=0, origLeft=0, origTop=0;
+
+    card.addEventListener('mousedown', e=>{
+      if(e.target.dataset.star) return;
+      dragging = true; moved = false;
+      startX = e.clientX; startY = e.clientY;
+      origLeft = card.offsetLeft; origTop = card.offsetTop;
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', e=>{
+      if(!dragging) return;
+      const dx = e.clientX-startX, dy = e.clientY-startY;
+      if(Math.abs(dx)>4 || Math.abs(dy)>4) moved = true;
+      if(moved){
+        const newLeft = Math.max(0, origLeft+dx);
+        const newTop = Math.max(0, origTop+dy);
+        card.style.left = newLeft+'px';
+        card.style.top = newTop+'px';
+        drawLines();
+      }
+    });
+    document.addEventListener('mouseup', ()=>{
+      if(!dragging) return;
+      dragging = false;
+      if(moved){
+        const idea = state.ideas.find(i=>i.id===card.dataset.id);
+        idea.x = card.offsetLeft; idea.y = card.offsetTop;
+        saveMap();
+      } else {
+        handleCardClick(card.dataset.id);
+      }
+    });
+
+    const starBtn = card.querySelector('.star-btn');
+    starBtn.addEventListener('mousedown', e=> e.stopPropagation());
+    starBtn.addEventListener('click', e=>{
+      e.stopPropagation();
+      const idea = state.ideas.find(i=>i.id===card.dataset.id);
+      idea.starred = !idea.starred;
+      card.classList.toggle('starred', idea.starred);
+      saveMap();
+    });
+  });
+
+  function handleCardClick(id){
+    if(!state.connectFrom){
+      state.connectFrom = id;
+      inner.querySelector(`.map-card[data-id="${id}"]`).classList.add('connecting');
+      return;
+    }
+    if(state.connectFrom === id){
+      inner.querySelector(`.map-card[data-id="${id}"]`).classList.remove('connecting');
+      state.connectFrom = null;
+      return;
+    }
+    const fromId = state.connectFrom;
+    const existing = state.connections.find(c=>
+      (c.fromId===fromId && c.toId===id) || (c.fromId===id && c.toId===fromId));
+    if(existing){
+      state.connections = state.connections.filter(c=>c.id!==existing.id);
+    } else {
+      const label = window.prompt('Como essas ideias se relacionam? (opcional, deixe em branco se não souber)', '') || '';
+      state.connections.push({id:uid(), fromId, toId:id, label:label.trim()});
+    }
+    inner.querySelector(`.map-card[data-id="${fromId}"]`).classList.remove('connecting');
+    state.connectFrom = null;
+    saveMap();
+    drawLines();
+  }
+
+  const mapDoneBtn = document.getElementById('mapDoneBtn');
+  if(mapDoneBtn) mapDoneBtn.addEventListener('click', async ()=>{
+    state.stage='done';
+    const entry = {id:uid(), question:state.question, ideas:state.ideas, connections:state.connections, count:state.ideas.length, date:Date.now()};
+    history.push(entry);
+    await storageSet('brainstorm:history', history);
+    await storageSet('brainstorm:current', {stage:'setup', question:'', durationMin:state.durationMin, ideas:[], connections:[]});
+    render();
+  });
+}
+
+function connLabel(conn){
+  const from = state.ideas.find(i=>i.id===conn.fromId);
+  const to = state.ideas.find(i=>i.id===conn.toId);
+  if(!from || !to) return null;
+  const rel = conn.label ? ` (${conn.label})` : '';
+  return `${from.text} ↔ ${to.text}${rel}`;
+}
+
+function doneView(){
+  const starred = state.ideas.filter(i=>i.starred);
+  const rest = state.ideas.filter(i=>!i.starred);
+  const conns = (state.connections||[]).map(connLabel).filter(Boolean);
+  return `
+    <div class="row between" style="margin-bottom:4px;">
+      <button class="btn btn-text" id="doneBackBtn">← Voltar ao início</button>
+    </div>
+    <h1>Resumo</h1>
+    <p class="sub">${escapeHtml(state.question)}</p>
+    <div class="card">
+      <label>Selecionadas</label>
+      ${starred.length ? `<ul class="final-list">${starred.map(i=>`<li>${escapeHtml(i.text)}</li>`).join('')}</ul>` : '<div class="empty">Nenhuma ideia marcada com estrela.</div>'}
+    </div>
+    ${conns.length ? `
+    <div class="card">
+      <label>Conexões do mapa (${conns.length})</label>
+      <ul class="conn-list">${conns.map(c=>`<li>${escapeHtml(c)}</li>`).join('')}</ul>
+    </div>` : ''}
+    ${rest.length ? `
+    <div class="card">
+      <label>Demais ideias (${rest.length})</label>
+      ${rest.map(i=>`<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;color:var(--ink-soft);">${escapeHtml(i.text)}</div>`).join('')}
+    </div>` : ''}
+    <div class="row end">
+      <button class="btn btn-ghost" id="copyBtn">Copiar resumo</button>
+      <button class="btn btn-primary" id="newBtn">Nova sessão</button>
+    </div>
+  `;
+}
+
+function attachDoneEvents(){
+  const doneBackBtn = document.getElementById('doneBackBtn');
+  if(doneBackBtn) doneBackBtn.addEventListener('click', ()=>{ state.stage='setup'; render(); });
+  const copyBtn = document.getElementById('copyBtn');
+  if(copyBtn) copyBtn.addEventListener('click', ()=>{
+    const starred = state.ideas.filter(i=>i.starred);
+    const rest = state.ideas.filter(i=>!i.starred);
+    const conns = (state.connections||[]).map(connLabel).filter(Boolean);
+    let text = `Brainstorm: ${state.question}\n\nSelecionadas:\n`;
+    text += starred.length ? starred.map(i=>`- ${i.text}`).join('\n') : '(nenhuma)';
+    if(conns.length){
+      text += `\n\nConexões do mapa:\n` + conns.map(c=>`- ${c}`).join('\n');
+    }
+    text += `\n\nOutras ideias:\n` + rest.map(i=>`- ${i.text}`).join('\n');
+    navigator.clipboard.writeText(text).then(()=>{
+      copyBtn.textContent = 'Copiado!';
+      setTimeout(()=> copyBtn.textContent='Copiar resumo', 1500);
+    });
+  });
+  const newBtn = document.getElementById('newBtn');
+  if(newBtn) newBtn.addEventListener('click', ()=>{
+    state = {stage:'setup', question:'', durationMin:state.durationMin, secondsLeft:0, ideas:[], connections:[], connectFrom:null, timerHandle:null, promptHandle:null, promptIndex:0};
+    render();
+  });
+}
+
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+init();
+</script>
+</body>
+</html>
